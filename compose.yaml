@@ -1,0 +1,15 @@
+services:
+  app:
+    build: .
+    image: glovebox:0.1.0
+    container_name: glovebox
+    restart: unless-stopped
+    ports:
+      - "${APP_BIND:-127.0.0.1}:8384:8080"
+    environment:
+      TZ: Pacific/Auckland
+      APP_DB: /data/app.sqlite3
+    volumes:
+      - ./data:/data
+    security_opt:
+      - no-new-privileges:true
