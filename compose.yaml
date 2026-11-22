@@ -1,7 +1,7 @@
 services:
   app:
     build: .
-    image: glovebox:0.1.0
+    image: glovebox:0.1.1
     container_name: glovebox
     restart: unless-stopped
     ports:

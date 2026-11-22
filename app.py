@@ -6,7 +6,7 @@ from datetime import date, timedelta
 
 from flask import Flask, abort, flash, jsonify, redirect, render_template, request, url_for
 
-APP_VERSION = "0.1.0"
+APP_VERSION = "0.1.1"
 APP_TITLE = "Glovebox"
 APP_INITIALS = "GB"
 DB = os.environ.get("APP_DB", "/data/app.sqlite3")
@@ -146,11 +146,11 @@ def add_vehicle():
             or (year_raw and (year is None or not 1886 <= year <= date.today().year + 1))
             or odometer is None or not 0 <= odometer <= 10_000_000):
         flash("Enter a vehicle name, an optional valid year and a non-negative odometer reading.")
-        return redirect(url_for("index"))
+        return redirect(dashboard_return(url_for("index")))
     with db() as conn:
         conn.execute("INSERT INTO vehicles(name, year, make, model, odometer) VALUES (?, ?, ?, ?, ?)",
                      (name, year, make, model, odometer))
-    return redirect(url_for("index"))
+    return redirect(dashboard_return(url_for("index")))
 
 
 @app.post("/events")
@@ -172,15 +172,28 @@ def add_event():
             "SELECT odometer FROM vehicles WHERE id = ?", (vehicle_id,)).fetchone()
         if invalid or vehicle is None:
             flash("Choose a vehicle and enter a date (not in the future), a type, and non-negative odometer and cost values.")
-            return redirect(url_for("index"))
+            return redirect(dashboard_return(url_for("index")))
         conn.execute("INSERT INTO events(vehicle_id, event_date, event_type, odometer, cost, notes) VALUES (?, ?, ?, ?, ?, ?)",
                      (vehicle_id, event_date.isoformat(), event_type, odometer,
                       round(cost, 2) if cost is not None else None, notes))
         if odometer is not None and odometer > vehicle["odometer"]:
             conn.execute("UPDATE vehicles SET odometer = ? WHERE id = ?", (odometer, vehicle_id))
-    return redirect(url_for("index"))
+    return redirect(dashboard_return(url_for("index")))
 
 
 if __name__ == "__main__":
     init_db()
     app.run(host="0.0.0.0", port=8080)
+
+# Safe same-application return target. External, protocol-relative and control-character URLs are rejected.
+def dashboard_return(default='/'):
+    from urllib.parse import urlsplit
+    target = request.form.get('return_to', '')
+    if not target or not target.startswith('/') or target.startswith('//') or '\\' in target:
+        return default
+    if any(ord(c) < 32 or ord(c) == 127 for c in target):
+        return default
+    parsed = urlsplit(target)
+    if parsed.scheme or parsed.netloc or parsed.fragment or parsed.path != '/':
+        return default
+    return target

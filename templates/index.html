@@ -6,9 +6,9 @@
   <p class="muted">Servicing, repairs, inspections, odometer readings and running costs in one place.</p>
 </section>
 
-<section class="grid">
+<section class="grid" data-dashboard-results>
   {% for v in vehicles %}
-  <article class="card">
+  <article data-dashboard-item class="card">
     <p class="eyebrow">{{ v.year or "" }} {{ v.make }} {{ v.model }}</p>
     <h2>{{ v.name }}</h2>
     <div class="metric">{{ "{:,}".format(v.odometer) }} km</div>
